@@ -1,0 +1,58 @@
+# Solve 8 Queeens problem using Hill climbing algorithm.
+
+### Importing the necessary libraries
+import mlrose
+import numpy as np
+
+###Defining the objective function
+def queens_max(position):
+    # We start the count
+    no_attack_on_j = 0
+    queen_not_attacking=0
+    # Compare for each pair of queens
+    for i in range(len(position) - 1):
+        no_attack_on_j=0
+        for j in range(i + 1, len(position)):
+            ### Check if there is any diagonal or horizontal attack.
+            ###Iterative process for each column
+            if (position[j] != position[i]) and (position[j] != position[i] + (j - i)) and (position[j] != position[i] - (j - i)):
+                """If there isn't any attack on the evaluated column.
+                The count is increased by one.
+                This counter is only used as a reference ."""
+                no_attack_on_j += 1
+                """If there is no attack on all the columns.
+                The general counter is increased by one.
+                This counter indicates the number of queens that are correctly
+                positioned."""
+                if(no_attack_on_j==len(position)-1-i):
+                    queen_not_attacking+=1
+                """The return number is the number of queens not attacking each
+                other. If this number is 7 we add 1 cause it means the last
+                queen is also free of attack."""
+    if(queen_not_attacking==7):
+      queen_not_attacking+=1
+    return queen_not_attacking
+    
+    # Assign the objective function to "CustomFitness" method.
+objective= mlrose.CustomFitness(queens_max)
+
+#Description of the problem
+problem = mlrose.DiscreteOpt(length = 8, fitness_fn = objective, maximize = True, max_val = 8)
+
+# Define decay schedule
+T = mlrose.ExpDecay()
+# Define initial state
+initial_position = np.array([4, 6, 1, 5, 2, 0, 3, 7])
+# Solve problem using simulated annealing
+best_position, best_objective = mlrose.simulated_annealing(problem=problem, schedule = T,
+max_attempts = 500, max_iters = 5000,
+init_state = initial_position)
+print('The best position found is: ', best_position)
+print('The number of queens that are not attacking each other is: ', best_objective)
+
+
+
+
+Output:
+The best position found is: [4 6 1 5 2 0 3 7]
+The number of queens that are not attacking each other is: 8.0
