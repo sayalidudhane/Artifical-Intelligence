@@ -1,0 +1,166 @@
+
+
+#include <iostream>
+#include <iterator> 
+#include <functional>
+#include <algorithm>
+#include <queue>          
+#include <vector>         
+#include <set> 
+#include <sstream>
+#include <string>
+
+using namespace std;
+
+struct Vertex
+{
+	int state[4][4];
+	Vertex *ancestor;
+	int cost, heuristics;
+
+	void RecalculateHeuristics();
+	void Print();
+};
+
+void Vertex::RecalculateHeuristics()
+{
+	int row[] = {3,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3};
+	int col[] = {3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2};
+
+	int r=0;
+	for(int i=0;i<4;i++)
+		for(int j=0;j<4;j++)
+			if(state[i][j]!=0)
+				r+=abs(row[state[i][j]]-i)+abs(col[state[i][j]]-j);
+	heuristics = r;
+}
+
+void Vertex::Print()
+{
+	for(int i=0;i<4;i++)
+	{
+		copy(&state[i][0], &state[i][3]+1, 
+			ostream_iterator<int>(cout, " "));
+		cout<<endl;
+	}
+	cout<<endl;
+}
+
+struct PQSorter
+{
+	bool operator() (Vertex *lhs, Vertex * rhs)
+	{
+		return lhs->cost+lhs->heuristics > rhs -> cost+ rhs -> heuristics;
+	}
+};
+
+struct CompareVPtrs: public binary_function<Vertex*, Vertex*, bool> 
+{
+	bool operator()( Vertex *lhs, Vertex *rhs) const
+	{
+		return equal((int *)lhs->state, (int *)lhs->state+16,
+			(int *)rhs->state);
+	}
+}
+CompareVP;
+
+priority_queue<Vertex*, deque<Vertex*>, PQSorter> Queue;
+set <Vertex*> Vertices;
+
+void Initialize()
+{
+	Vertex* startingState = new Vertex;
+    string line;
+
+
+	for(int i=0;i<4;i++)
+	{
+		getline(cin,line);
+		istringstream is(line);
+		for(int j=0;j<4;j++)
+			//cin>> startingState -> state[i][j];
+			is >> startingState -> state[i][j];
+	}	
+		
+	startingState->cost = 0;
+	startingState->RecalculateHeuristics();
+	startingState->ancestor = NULL;
+	Queue.push(startingState);
+	Vertices.insert(startingState);
+	cout<<endl;
+	
+}
+
+void AddNeighbours(Vertex* gameState)
+{
+	int zi, zj;
+	for(int i=0;i<4;i++)
+		for(int j=0;j<4;j++)
+			if(gameState->state[i][j] == 0)
+			{ zi=i; zj=j; break; }
+		
+	int di[] = {-1, 0, 1, 0}, dj[] = {0, -1, 0, 1};
+
+	for(int k=0; k<4; k++)
+	{
+		int i = zi + di[k];
+		int j = zj + dj[k];
+		
+		if(i>=0 && j>=0 && i<=3 && j<=3)
+		{
+			Vertex* v = new Vertex;
+			copy((int*)gameState->state, (int*)gameState+16, (int*)v->state);
+			v->state[i][j] = 0;
+			v->state[zi][zj] = gameState->state[i][j];
+			v->cost = gameState->cost+1;
+			v->RecalculateHeuristics();
+			v->ancestor = gameState;
+
+			if(find_if(Vertices.begin(), Vertices.end(), bind2nd(CompareVP,v))==Vertices.end())
+			{
+				Queue.push(v);
+				Vertices.insert(v);
+			}
+			else
+				delete v;
+		}
+
+		
+	}
+}
+bool isGoal(Vertex *s)
+{
+	int goal[4][4] = {{1,2,3,4},{5,6,7,8},{9,10,11,12},{13,14,15,0}};
+	return equal((int *)s->state, (int *)s->state+16, (int *)goal);
+}
+
+int main()
+{
+	Initialize();
+	int c=0;
+	while(!Queue.empty())
+	{
+		Vertex* v = Queue.top();
+		Queue.pop();
+		c++;
+
+		if(isGoal(v))
+		{
+			while(v != NULL)
+			{
+				v->Print();
+				v = v->ancestor;
+			}
+			cout << c << " vertices";
+			break;
+		}
+		else
+			AddNeighbours(v);
+	}
+
+	for(set<Vertex*>::iterator p = Vertices.begin();p!=Vertices.end();p++)
+		delete *p;
+
+	system("pause");
+	return 0;
+}
